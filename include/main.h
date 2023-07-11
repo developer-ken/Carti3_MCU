@@ -30,25 +30,43 @@
 #define BEEP_PIN PB_1
 #define ADDR_LED_PIN PA_0
 #define MOTOR_SAFETY_PIN PB_7
-#define PWR_5V_EN PC_13
-#define BAT_VSENSE PB_0
+
+#define LIDAR_ROTATE_MOTOR_PWM PB_6
+
 #define BUTTON_PIN PA_7
+
+#define PWR_5V_EN PC13
+#define BAT_VSENSE PB0
+
+#define MAIN_PWR_VSENSE_FACTOR 0.01405f
+#define MAIN_PWR_VOTAGE_LOW_LIMIT 10.6f
 
 #endif
 
-
 // #define SKIP_SELFTEST_ON_BOOT  //禁止开机自检(测试RGB灯及蜂鸣器)
-#define DISABLE_BEEP // 禁止蜂鸣器鸣响
+// #define DISABLE_BEEP // 禁止蜂鸣器鸣响
 
 #define HEADER_MARK 0xAF
 
 #include "beep.h"
 #include "motor.h"
 
+enum PackType : uint8_t
+{
+    MOTOR_CMD = 0xF1,
+    LED_COLOR_CHANGE = 0xF2,
+    BEEP_CMD = 0xF3,
+    MOTOR_LOCK_UNLOCK = 0xF4,
+
+    RPT__MAIN_BAT_VOLT = 0xC1,
+    RPT__BUTTON_DOWN = 0xC2,
+    RPT__BUTTON_UP = 0xC3
+};
+
 struct TransData
 {
     uint8_t HEADER;
-    uint8_t type;
+    PackType type;
     int16_t data[4];
 };
 
@@ -56,14 +74,6 @@ union TransDataBuf
 {
     TransData data;
     uint8_t bytes[10];
-};
-
-enum PackType
-{
-    MOTOR_CMD = 0xF1,
-    LED_COLOR_CHANGE = 0xF2,
-    BEEP_CMD = 0xF3,
-    MOTOR_LOCK_UNLOCK = 0xF4,
 };
 
 #ifndef MAIN_FUNC_CPP
@@ -76,6 +86,9 @@ extern STM32_ISR_Timer ISR_Timer;
 extern int8_t vvpointer;
 extern uint8_t isButtonPressed;
 extern TransDataBuf transbuffer;
+extern float voltage;
+extern uint8_t flag_DoReportVoltage;
+extern uint8_t IsMainPwrLowVoltLocked;
 #endif
 
 void TimerHandler();
@@ -84,6 +97,9 @@ void Init_Motors();
 void Init_Button();
 void Init_5V_Pwr();
 void Init_Others();
+
+void ReportVotage();
+void SampleVotage();
 
 #ifndef SKIP_SELFTEST_ON_BOOT
 void SelfTest();
