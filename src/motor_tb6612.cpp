@@ -1,5 +1,6 @@
+#ifdef MOTOR_DRIVER_6612
 #include <Arduino.h>
-#include <motor.h>
+#include <motor_tb6612.h>
 
 Motor::Motor(PinName CW, PinName CCW, PinName PWM)
 {
@@ -37,3 +38,4 @@ void Motor::Speed(int32_t speed)
         analogWrite(pwm, 0);
     }
 }
+#endif

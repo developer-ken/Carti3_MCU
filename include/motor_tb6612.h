@@ -1,3 +1,4 @@
+#ifdef MOTOR_DRIVER_TB6612
 #ifndef _H_LIBMOTOR_MOTOR_
 #define _H_LIBMOTOR_MOTOR_
 #include <Arduino.h>
@@ -15,4 +16,5 @@ public:
 private:
     PinName cw, ccw, pwm;
 };
+#endif
 #endif
