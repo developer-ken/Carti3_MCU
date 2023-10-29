@@ -3,7 +3,7 @@
 #define _H_LIBMOTOR_MOTOR_TB6612_
 #include <Arduino.h>
 #include "motor.h"
-class MotorTb6612 : IMotor
+class MotorTb6612 : public IMotor
 {
 public:
     MotorTb6612(PinName CW, PinName CCW, PinName PWM);

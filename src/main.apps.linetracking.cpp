@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include "main.apps.linetracking.h"
 
-#define SPEED_MAX 150
-#define SPEED_DIFF 25
+#define SPEED_MAX 255
+#define SPEED_DIFF 50
 
 #define SPEED_STD SPEED_MAX - SPEED_DIFF
 
@@ -16,6 +16,7 @@ LineTracking::LineTracking(ILineTrackingSensor *sensor, IMotor *lf, IMotor *rf, 
     // this->lastresult = Loss;
     this->sensor->LineTrackingStateChangedEvent =
         std::bind(&LineTracking::lineTrackingSensorCallback, this, std::placeholders::_1);
+    state = WorkingState::WStraight;
 }
 
 void LineTracking::lineTrackingSensorCallback(LineTrackingResult ltr)

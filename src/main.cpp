@@ -1,5 +1,7 @@
 #include "main.h"
 
+bool run = false;
+
 void setup()
 {
   INIT_BEEP();
@@ -44,10 +46,10 @@ void loop()
       ; // 阻塞主循环
   }
 
-  
-
   if (WButtonPressed)
   {
+    if (WButtonPressed == 1)
+      run = !run;
     WButtonPressed = 0;
     ISR_Timer.setTimer( // 灵活使用定时器进行异步延时，不要长时间阻塞主循环
         100, []()
@@ -55,17 +57,26 @@ void loop()
         1);
   }
 
-  if (flag_DoReportVoltage)
-  {
-    TransDataBuf pack;
-    pack.data.HEADER = HEADER_MARK;
-    pack.data.type = RPT__MAIN_BAT_VOLT;
-    pack.data.data[0] = (int16_t)(voltage * 1000);
-    UpSerial.write(pack.bytes, sizeof(TransDataBuf));
-    if (voltage < MAIN_PWR_VOTAGE_LOW_LIMIT)
-    {
-      IsMainPwrLowVoltLocked = 1;
-    }
-    flag_DoReportVoltage = 0;
+  if(run){
+    digitalWrite(MOTOR_SAFETY_PIN, HIGH);        // 解锁电机
+    linetracking.Update(&UpSerial);
+  }else{
+    LF.Speed(0);
+    RF.Speed(0);
+    LB.Speed(0);
+    RB.Speed(0);
   }
+  // if (flag_DoReportVoltage)
+  // {
+  //   TransDataBuf pack;
+  //   pack.data.HEADER = HEADER_MARK;
+  //   pack.data.type = RPT__MAIN_BAT_VOLT;
+  //   pack.data.data[0] = (int16_t)(voltage * 1000);
+  //   UpSerial.write(pack.bytes, sizeof(TransDataBuf));
+  //   if (voltage < MAIN_PWR_VOTAGE_LOW_LIMIT)
+  //   {
+  //     IsMainPwrLowVoltLocked = 1;
+  //   }
+  //   flag_DoReportVoltage = 0;
+  // }
 }

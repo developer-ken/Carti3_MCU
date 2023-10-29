@@ -1,5 +1,6 @@
 #define MAIN_FUNC_CPP
 #include "main.h"
+#include "motor.h"
 
 HardwareSerial UpSerial(SERIAL_RX, SERIAL_TX);
 HardwareSerial DebugSerial(AUX_SERIAL_RX, AUX_SERIAL_TX);
@@ -15,6 +16,8 @@ MotorDrv8220 LF(MOTOR_LF_CW, MOTOR_LF_PWM),
     LB(MOTOR_LB_CW, MOTOR_LB_PWM),
     RB(MOTOR_RB_CW, MOTOR_RB_PWM);
 #endif
+LinetrackingSensor5W ltsensor(FSENSOR_P4, FSENSOR_P3, FSENSOR_P2, FSENSOR_P1, FSENSOR_P0, HIGH);
+LineTracking linetracking(&ltsensor, &LF, &RF, &LB, &RB);
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(6, ADDR_LED_PIN, NEO_GRB + NEO_KHZ800);
 
@@ -94,76 +97,76 @@ void Init_Others()
     strip.setBrightness(255);
 
     pinMode(LIDAR_ROTATE_MOTOR_PWM, OUTPUT);
-    analogWrite(LIDAR_ROTATE_MOTOR_PWM, 255 / 2); // 雷达全速
+    analogWrite(LIDAR_ROTATE_MOTOR_PWM, 255); // 限制雷达速度
 
     ITimer.attachInterruptInterval(50 * 50, TimerHandler);
     // 50为常数，第二个50为中断周期(ms)。之后挂在ISR_Timer上的函数延迟和周期必须是50ms的整倍数。
 
-    ISR_Timer.setInterval(2000, ReportVotage);
-    ISR_Timer.setInterval(100, SampleVotage);
+    // ISR_Timer.setInterval(2000, ReportVotage);
+    // ISR_Timer.setInterval(100, SampleVotage);
 }
 
-void ReportVotage()
-{
-    flag_DoReportVoltage = 1; // 优先级低的工作不要阻塞中断，设置个标志位，放到主循环处理
-}
+// void ReportVotage()
+// {
+//     flag_DoReportVoltage = 1; // 优先级低的工作不要阻塞中断，设置个标志位，放到主循环处理
+// }
 
-void SampleVotage()
-{
-    float measure = (float)analogRead(BAT_VSENSE);
-    voltage = (voltage + (measure * MAIN_PWR_VSENSE_FACTOR)) / 2;
-}
+// void SampleVotage()
+// {
+//     float measure = (float)analogRead(BAT_VSENSE);
+//     voltage = (voltage + (measure * MAIN_PWR_VSENSE_FACTOR)) / 2;
+// }
 
-void HandleCommand()
-{
-    if (UpSerial.available() >= 10)
-    {
-        for (int i = -10; i < 10; i++)
-        {
-            uint8_t byteread = UpSerial.read();
-            if (i < 0 && byteread != HEADER_MARK)
-            {
-                i = -10;
-                continue;
-            }
-            if (i < 0 && byteread == HEADER_MARK)
-                i = 0;
-            transbuffer.bytes[i] = byteread;
-        }
-        DebugSerial.printf("RECV:");
-        for (int i = 0; i < 10; i++)
-            DebugSerial.printf("%02X ", transbuffer.bytes[i]);
-        DebugSerial.printf("\n");
-        if (transbuffer.data.HEADER == HEADER_MARK)
-        {
-            switch (transbuffer.data.type)
-            {
-            case MOTOR_CMD:
-                LF.Speed(transbuffer.data.data[0]);
-                RF.Speed(transbuffer.data.data[1]);
-                LB.Speed(transbuffer.data.data[2]);
-                RB.Speed(transbuffer.data.data[3]);
-                break;
-            case LED_COLOR_CHANGE:
-                strip.setPixelColor(transbuffer.data.data[0], transbuffer.data.data[1], transbuffer.data.data[2], transbuffer.data.data[3]);
-                strip.show();
-                break;
-            case BEEP_CMD:
-                if (transbuffer.data.data[0] == 1)
-                    BEEP_ON();
-                else
-                    BEEP_OFF();
-                break;
-            case MOTOR_LOCK_UNLOCK:
-                if (transbuffer.data.data[0] == 1)
-                    digitalWrite(MOTOR_SAFETY_PIN, HIGH);
-                else
-                    digitalWrite(MOTOR_SAFETY_PIN, LOW);
-                break;
-            }
-        }
-    }
-}
+// void HandleCommand()
+// {
+//     if (UpSerial.available() >= 10)
+//     {
+//         for (int i = -10; i < 10; i++)
+//         {
+//             uint8_t byteread = UpSerial.read();
+//             if (i < 0 && byteread != HEADER_MARK)
+//             {
+//                 i = -10;
+//                 continue;
+//             }
+//             if (i < 0 && byteread == HEADER_MARK)
+//                 i = 0;
+//             transbuffer.bytes[i] = byteread;
+//         }
+//         DebugSerial.printf("RECV:");
+//         for (int i = 0; i < 10; i++)
+//             DebugSerial.printf("%02X ", transbuffer.bytes[i]);
+//         DebugSerial.printf("\n");
+//         if (transbuffer.data.HEADER == HEADER_MARK)
+//         {
+//             switch (transbuffer.data.type)
+//             {
+//             case MOTOR_CMD:
+//                 LF.Speed(transbuffer.data.data[0]);
+//                 RF.Speed(transbuffer.data.data[1]);
+//                 LB.Speed(transbuffer.data.data[2]);
+//                 RB.Speed(transbuffer.data.data[3]);
+//                 break;
+//             case LED_COLOR_CHANGE:
+//                 strip.setPixelColor(transbuffer.data.data[0], transbuffer.data.data[1], transbuffer.data.data[2], transbuffer.data.data[3]);
+//                 strip.show();
+//                 break;
+//             case BEEP_CMD:
+//                 if (transbuffer.data.data[0] == 1)
+//                     BEEP_ON();
+//                 else
+//                     BEEP_OFF();
+//                 break;
+//             case MOTOR_LOCK_UNLOCK:
+//                 if (transbuffer.data.data[0] == 1)
+//                     digitalWrite(MOTOR_SAFETY_PIN, HIGH);
+//                 else
+//                     digitalWrite(MOTOR_SAFETY_PIN, LOW);
+//                 break;
+//             }
+//         }
+//     }
+// }
 
 #ifndef SKIP_SELFTEST_ON_BOOT
 void SelfTest()

@@ -14,21 +14,24 @@
 #define AUX_SERIAL_RX PB_11
 #define AUX_SERIAL_TX PB_10
 
-#define MOTOR_LF_PWM PA_0
-//#define MOTOR_LF_CCW PA_4
-#define MOTOR_LF_CW PB_5
+#define MOTOR_LB_PWM PA_0
+#define MOTOR_LB_CW PB_5
 
-#define MOTOR_RF_PWM PA_1
-//#define MOTOR_RF_CCW PB_5
-#define MOTOR_RF_CW PB_4
+#define MOTOR_LF_PWM PA_1
+#define MOTOR_LF_CW PB_4
 
-#define MOTOR_LB_PWM PA_2
-//#define MOTOR_LB_CCW PA_5
-#define MOTOR_LB_CW PB_3
+#define MOTOR_RF_PWM PA_2
+#define MOTOR_RF_CW PB_3
 
 #define MOTOR_RB_PWM PA_3
-//#define MOTOR_RB_CCW PA_15
 #define MOTOR_RB_CW PA_15
+
+#define FSENSOR_P0 PA_12
+#define FSENSOR_P1 PA_11
+#define FSENSOR_P2 PA_8
+#define FSENSOR_P3 PB_15
+#define FSENSOR_P4 PB_14
+#define FSENSOR_P5 PB_13
 
 #define BEEP_PIN PB_1
 #define ADDR_LED_PIN PA_4
@@ -55,6 +58,8 @@
 #include "beep.h"
 #include "motor_tb6612.h"
 #include "motor_drv8220.h"
+#include "linetracking_5way.h"
+#include "main.apps.linetracking.h"
 
 enum PackType : uint8_t
 {
@@ -85,6 +90,9 @@ union TransDataBuf
 #include <STM32_ISR_Timer-Impl.h>
 extern HardwareSerial UpSerial;
 extern HardwareSerial DebugSerial;
+
+extern LinetrackingSensor5W ltsensor;
+extern LineTracking linetracking;
 
 #ifdef MOTOR_DRIVER_TB6612
 extern MotorTb6612 LF, RF, LB, RB;

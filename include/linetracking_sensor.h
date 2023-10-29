@@ -11,7 +11,6 @@ class ILineTrackingSensor
     public:
     enum LineTrackingResult result;
     bool isMiddleSensorTriggered;
-    virtual void Init() = 0;
     /// @brief 事件，当传感器状态发生变化时触发。可能会在IRC调用，避免耗时操作
     std::function<void(LineTrackingResult)> LineTrackingStateChangedEvent;
 };
