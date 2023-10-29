@@ -2,20 +2,20 @@
 #include <Arduino.h>
 #include <motor_drv8220.h>
 
-Motor::Motor(PinName PH, PinName PWM)
+MotorDrv8220::MotorDrv8220(PinName PH, PinName PWM)
 {
     ph = PH;
     pwm = PWM;
 }
 
-void Motor::begin()
+void MotorDrv8220::begin()
 {
     pinMode(ph, OUTPUT);
     pinMode(pwm, OUTPUT);
     analogWrite(pwm, 0);
 }
 
-void Motor::Speed(int32_t speed)
+void MotorDrv8220::Speed(int32_t speed)
 {
     if (speed > 0)
     {

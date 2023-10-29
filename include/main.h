@@ -85,7 +85,14 @@ union TransDataBuf
 #include <STM32_ISR_Timer-Impl.h>
 extern HardwareSerial UpSerial;
 extern HardwareSerial DebugSerial;
-extern Motor LF, RF, LB, RB;
+
+#ifdef MOTOR_DRIVER_TB6612
+extern MotorTb6612 LF, RF, LB, RB;
+#endif
+#ifdef MOTOR_DRIVER_DRV8220
+extern MotorDrv8220 LF, RF, LB, RB;
+#endif
+
 extern Adafruit_NeoPixel strip;
 extern STM32Timer ITimer;
 extern STM32_ISR_Timer ISR_Timer;
@@ -103,6 +110,7 @@ void Init_Motors();
 void Init_Button();
 void Init_5V_Pwr();
 void Init_Others();
+void HandleCommand();
 
 void ReportVotage();
 void SampleVotage();

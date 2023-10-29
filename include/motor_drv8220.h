@@ -1,11 +1,12 @@
 #ifdef MOTOR_DRIVER_DRV8220
-#ifndef _H_LIBMOTOR_MOTOR_
-#define _H_LIBMOTOR_MOTOR_
+#ifndef _H_LIBMOTOR_MOTOR_Drv8220_
+#define _H_LIBMOTOR_MOTOR_Drv8220_
 #include <Arduino.h>
-class Motor
+#include "motor.h"
+class MotorDrv8220 : IMotor
 {
 public:
-    Motor(PinName PH, PinName PWM);
+    MotorDrv8220(PinName PH, PinName PWM);
 
     void begin();
 

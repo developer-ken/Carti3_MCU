@@ -44,53 +44,7 @@ void loop()
       ; // 阻塞主循环
   }
 
-  if (UpSerial.available() >= 10)
-  {
-    for (int i = -10; i < 10; i++)
-    {
-      uint8_t byteread = UpSerial.read();
-      if (i < 0 && byteread != HEADER_MARK)
-      {
-        i = -10;
-        continue;
-      }
-      if (i < 0 && byteread == HEADER_MARK)
-        i = 0;
-      transbuffer.bytes[i] = byteread;
-    }
-    DebugSerial.printf("RECV:");
-    for (int i = 0; i < 10; i++)
-      DebugSerial.printf("%02X ", transbuffer.bytes[i]);
-    DebugSerial.printf("\n");
-    if (transbuffer.data.HEADER == HEADER_MARK)
-    {
-      switch (transbuffer.data.type)
-      {
-      case MOTOR_CMD:
-        LF.Speed(transbuffer.data.data[0]);
-        RF.Speed(transbuffer.data.data[1]);
-        LB.Speed(transbuffer.data.data[2]);
-        RB.Speed(transbuffer.data.data[3]);
-        break;
-      case LED_COLOR_CHANGE:
-        strip.setPixelColor(transbuffer.data.data[0], transbuffer.data.data[1], transbuffer.data.data[2], transbuffer.data.data[3]);
-        strip.show();
-        break;
-      case BEEP_CMD:
-        if (transbuffer.data.data[0] == 1)
-          BEEP_ON();
-        else
-          BEEP_OFF();
-        break;
-      case MOTOR_LOCK_UNLOCK:
-        if (transbuffer.data.data[0] == 1)
-          digitalWrite(MOTOR_SAFETY_PIN, HIGH);
-        else
-          digitalWrite(MOTOR_SAFETY_PIN, LOW);
-        break;
-      }
-    }
-  }
+  
 
   if (WButtonPressed)
   {

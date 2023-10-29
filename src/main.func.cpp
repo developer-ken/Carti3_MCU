@@ -4,13 +4,13 @@
 HardwareSerial UpSerial(SERIAL_RX, SERIAL_TX);
 HardwareSerial DebugSerial(AUX_SERIAL_RX, AUX_SERIAL_TX);
 #ifdef MOTOR_DRIVER_TB6612
-Motor LF(MOTOR_LF_CW, MOTOR_LF_CCW, MOTOR_LF_PWM),
+MotorTb6612 LF(MOTOR_LF_CW, MOTOR_LF_CCW, MOTOR_LF_PWM),
     RF(MOTOR_RF_CW, MOTOR_RF_CCW, MOTOR_RF_PWM),
     LB(MOTOR_LB_CW, MOTOR_LB_CCW, MOTOR_LB_PWM),
     RB(MOTOR_RB_CW, MOTOR_RB_CCW, MOTOR_RB_PWM);
 #endif
 #ifdef MOTOR_DRIVER_DRV8220
-Motor LF(MOTOR_LF_CW, MOTOR_LF_PWM),
+MotorDrv8220 LF(MOTOR_LF_CW, MOTOR_LF_PWM),
     RF(MOTOR_RF_CW, MOTOR_RF_PWM),
     LB(MOTOR_LB_CW, MOTOR_LB_PWM),
     RB(MOTOR_RB_CW, MOTOR_RB_PWM);
@@ -45,14 +45,16 @@ void ButtonPressHandler2()
     WButtonPressed = 2;
 }
 
-void MotorTest(){
+void MotorTest()
+{
     digitalWrite(MOTOR_SAFETY_PIN, HIGH);
     RF.Speed(255);
     RB.Speed(-255);
 
     LF.Speed(255);
     LB.Speed(255);
-    while(1);
+    while (1)
+        ;
 }
 
 void Init_Motors()
@@ -67,7 +69,7 @@ void Init_Motors()
     LF.Speed(0);
     pinMode(MOTOR_SAFETY_PIN, OUTPUT);
     digitalWrite(MOTOR_SAFETY_PIN, LOW); // 锁定电机，防止误动作
-    //MotorTest();
+    // MotorTest();
 }
 
 void Init_Button()
@@ -110,6 +112,57 @@ void SampleVotage()
 {
     float measure = (float)analogRead(BAT_VSENSE);
     voltage = (voltage + (measure * MAIN_PWR_VSENSE_FACTOR)) / 2;
+}
+
+void HandleCommand()
+{
+    if (UpSerial.available() >= 10)
+    {
+        for (int i = -10; i < 10; i++)
+        {
+            uint8_t byteread = UpSerial.read();
+            if (i < 0 && byteread != HEADER_MARK)
+            {
+                i = -10;
+                continue;
+            }
+            if (i < 0 && byteread == HEADER_MARK)
+                i = 0;
+            transbuffer.bytes[i] = byteread;
+        }
+        DebugSerial.printf("RECV:");
+        for (int i = 0; i < 10; i++)
+            DebugSerial.printf("%02X ", transbuffer.bytes[i]);
+        DebugSerial.printf("\n");
+        if (transbuffer.data.HEADER == HEADER_MARK)
+        {
+            switch (transbuffer.data.type)
+            {
+            case MOTOR_CMD:
+                LF.Speed(transbuffer.data.data[0]);
+                RF.Speed(transbuffer.data.data[1]);
+                LB.Speed(transbuffer.data.data[2]);
+                RB.Speed(transbuffer.data.data[3]);
+                break;
+            case LED_COLOR_CHANGE:
+                strip.setPixelColor(transbuffer.data.data[0], transbuffer.data.data[1], transbuffer.data.data[2], transbuffer.data.data[3]);
+                strip.show();
+                break;
+            case BEEP_CMD:
+                if (transbuffer.data.data[0] == 1)
+                    BEEP_ON();
+                else
+                    BEEP_OFF();
+                break;
+            case MOTOR_LOCK_UNLOCK:
+                if (transbuffer.data.data[0] == 1)
+                    digitalWrite(MOTOR_SAFETY_PIN, HIGH);
+                else
+                    digitalWrite(MOTOR_SAFETY_PIN, LOW);
+                break;
+            }
+        }
+    }
 }
 
 #ifndef SKIP_SELFTEST_ON_BOOT

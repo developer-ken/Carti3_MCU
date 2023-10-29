@@ -1,11 +1,12 @@
 #ifdef MOTOR_DRIVER_TB6612
-#ifndef _H_LIBMOTOR_MOTOR_
-#define _H_LIBMOTOR_MOTOR_
+#ifndef _H_LIBMOTOR_MOTOR_TB6612_
+#define _H_LIBMOTOR_MOTOR_TB6612_
 #include <Arduino.h>
-class Motor
+#include "motor.h"
+class MotorTb6612 : IMotor
 {
 public:
-    Motor(PinName CW, PinName CCW, PinName PWM);
+    MotorTb6612(PinName CW, PinName CCW, PinName PWM);
 
     void begin();
 

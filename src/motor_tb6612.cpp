@@ -2,14 +2,14 @@
 #include <Arduino.h>
 #include <motor_tb6612.h>
 
-Motor::Motor(PinName CW, PinName CCW, PinName PWM)
+MotorTb6612::MotorTb6612(PinName CW, PinName CCW, PinName PWM)
 {
     cw = CW;
     ccw = CCW;
     pwm = PWM;
 }
 
-void Motor::begin()
+void MotorTb6612::begin()
 {
     pinMode(cw, OUTPUT);
     pinMode(ccw, OUTPUT);
@@ -17,7 +17,7 @@ void Motor::begin()
     analogWrite(pwm, 0);
 }
 
-void Motor::Speed(int32_t speed)
+void MotorTb6612::Speed(int32_t speed)
 {
     if (speed > 0)
     {
