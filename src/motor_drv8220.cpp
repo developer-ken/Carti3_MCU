@@ -2,10 +2,11 @@
 #include <Arduino.h>
 #include <motor_drv8220.h>
 
-MotorDrv8220::MotorDrv8220(PinName PH, PinName PWM)
+MotorDrv8220::MotorDrv8220(PinName PH, PinName PWM, bool invert)
 {
     ph = PH;
     pwm = PWM;
+    Invert = invert;
 }
 
 void MotorDrv8220::begin()
@@ -19,12 +20,12 @@ void MotorDrv8220::Speed(int32_t speed)
 {
     if (speed > 0)
     {
-        digitalWrite(ph, HIGH);
+        digitalWrite(ph, Invert ? LOW : HIGH);
         analogWrite(pwm, speed);
     }
     else if (speed < 0)
     {
-        digitalWrite(ph, LOW);
+        digitalWrite(ph, Invert ? HIGH : LOW);
         analogWrite(pwm, -speed);
     }
     else

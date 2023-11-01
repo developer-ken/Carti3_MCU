@@ -6,7 +6,7 @@
 class MotorTb6612 : public IMotor
 {
 public:
-    MotorTb6612(PinName CW, PinName CCW, PinName PWM);
+    MotorTb6612(PinName CW, PinName CCW, PinName PWM, bool invert = false);
 
     void begin();
 
@@ -16,6 +16,7 @@ public:
 
 private:
     PinName cw, ccw, pwm;
+    bool Invert;
 };
 #endif
 #endif

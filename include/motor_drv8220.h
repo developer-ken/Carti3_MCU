@@ -6,7 +6,7 @@
 class MotorDrv8220 : public IMotor
 {
 public:
-    MotorDrv8220(PinName PH, PinName PWM);
+    MotorDrv8220(PinName PH, PinName PWM, bool invert = false);
 
     void begin();
 
@@ -16,6 +16,7 @@ public:
 
 private:
     PinName ph, pwm;
+    bool Invert;
 };
 #endif
 #endif

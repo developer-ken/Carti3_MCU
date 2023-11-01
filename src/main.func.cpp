@@ -11,12 +11,12 @@ MotorTb6612 LF(MOTOR_LF_CW, MOTOR_LF_CCW, MOTOR_LF_PWM),
     RB(MOTOR_RB_CW, MOTOR_RB_CCW, MOTOR_RB_PWM);
 #endif
 #ifdef MOTOR_DRIVER_DRV8220
-MotorDrv8220 LF(MOTOR_LF_CW, MOTOR_LF_PWM),
-    RF(MOTOR_RF_CW, MOTOR_RF_PWM),
-    LB(MOTOR_LB_CW, MOTOR_LB_PWM),
-    RB(MOTOR_RB_CW, MOTOR_RB_PWM);
+MotorDrv8220 LF(MOTOR_LF_CW, MOTOR_LF_PWM, true),
+    RF(MOTOR_RF_CW, MOTOR_RF_PWM, true),
+    LB(MOTOR_LB_CW, MOTOR_LB_PWM, true),
+    RB(MOTOR_RB_CW, MOTOR_RB_PWM, true);
 #endif
-LinetrackingSensor5W ltsensor(FSENSOR_P4, FSENSOR_P3, FSENSOR_P2, FSENSOR_P1, FSENSOR_P0, HIGH);
+LinetrackingSensor5W ltsensor(FSENSOR_P4, FSENSOR_P3, FSENSOR_P2, FSENSOR_P1, FSENSOR_P0, LOW);
 LineTracking linetracking(&ltsensor, &LF, &RF, &LB, &RB);
 
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(6, ADDR_LED_PIN, NEO_GRB + NEO_KHZ800);
