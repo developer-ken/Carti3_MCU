@@ -5,8 +5,8 @@
 class LinetrackingSensor5W : public ILineTrackingSensor
 {
 public:
-    LinetrackingSensor5W(PinName LL, PinName L, PinName M, PinName R, PinName RR, int triggerLevel);
-    
+    LinetrackingSensor5W(PinName LL, PinName L, PinName M, PinName R, PinName RR, int triggerLevel, bool useInterrupt = false);
+    void TriggerOverallUpdate();
 private:
     PinName ll, l, m, r, rr;
     bool LL, L, M, R, RR;

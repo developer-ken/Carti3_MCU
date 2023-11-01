@@ -103,7 +103,7 @@ void Init_Others()
     // 50为常数，第二个50为中断周期(ms)。之后挂在ISR_Timer上的函数延迟和周期必须是50ms的整倍数。
 
     // ISR_Timer.setInterval(2000, ReportVotage);
-    // ISR_Timer.setInterval(100, SampleVotage);
+    ISR_Timer.setInterval(100, SampleVotage);
 }
 
 // void ReportVotage()
@@ -111,11 +111,11 @@ void Init_Others()
 //     flag_DoReportVoltage = 1; // 优先级低的工作不要阻塞中断，设置个标志位，放到主循环处理
 // }
 
-// void SampleVotage()
-// {
-//     float measure = (float)analogRead(BAT_VSENSE);
-//     voltage = (voltage + (measure * MAIN_PWR_VSENSE_FACTOR)) / 2;
-// }
+ void SampleVotage()
+ {
+     float measure = (float)analogRead(BAT_VSENSE);
+     voltage = (voltage + (measure * MAIN_PWR_VSENSE_FACTOR)) / 2;
+ }
 
 // void HandleCommand()
 // {

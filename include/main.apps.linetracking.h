@@ -7,12 +7,15 @@ enum CrossingCommand
 {
     Left,
     Right,
-    GoStraight
+    GoStraight,
+    CStop,
+    Alarm
 };
 
 enum WorkingState{
     WStraight,WCorrLeft,WCorrRight,
     LPending,RPending,TurnLeft,TurnRight,
+    LDelay,RDelay,
     StPending,
     Stop,
     NormPending
@@ -24,13 +27,13 @@ public:
     CrossingCommand CmdAtNextCrossing;
     bool CommandExecuted;
     LineTracking(ILineTrackingSensor *sensor, IMotor *lf, IMotor *rf, IMotor *lb, IMotor *rb);
-    void Update(HardwareSerial *);
+    int Update(CrossingCommand* cmdQueue, int cmdQueueLength);
+    WorkingState state;
 
 private:
     ILineTrackingSensor *sensor;
     IMotor *LF, *RF, *LB, *RB;
     void lineTrackingSensorCallback(LineTrackingResult);
-    WorkingState state;
     //LineTrackingResult lastresult;
 };
 #endif

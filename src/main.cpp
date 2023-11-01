@@ -1,6 +1,68 @@
 #include "main.h"
 
 bool run = false;
+CrossingCommand *cmdQueue;
+int queuelen = 0;
+
+//路径：警察
+CrossingCommand cmdQueue_police[] = {
+    Right,
+    GoStraight,
+    Left,
+    Right,
+
+    GoStraight,
+    Right,
+    Left,
+    Left,
+
+    GoStraight,
+    GoStraight,
+    GoStraight,
+    GoStraight,
+
+    GoStraight,
+
+    Alarm,
+
+    Right,
+    Right,
+    GoStraight,
+
+    GoStraight,
+    Left,
+    Right,
+    GoStraight,
+    Left,
+    CStop};
+//路径：小偷
+CrossingCommand cmdQueue_thief[] = {
+    Right,
+    GoStraight,
+    Left,
+    Right,
+
+    GoStraight,
+    GoStraight,
+    Left,
+
+    Alarm,
+
+    GoStraight,
+
+    Left,
+    Left,
+    Right,
+    
+    Left,
+    Right,
+    Left,
+    Right,
+    
+    Left,
+    Left,
+
+    CStop};
 
 void setup()
 {
@@ -17,39 +79,48 @@ void setup()
 void loop()
 {
   /* 低电压安全锁，仅可用过RESET解除 */
-  if (IsMainPwrLowVoltLocked)
-  {
-    LF.Speed(0);
-    RF.Speed(0);
-    LB.Speed(0);
-    RB.Speed(0);
-    digitalWrite(MOTOR_SAFETY_PIN, LOW);        // 锁定电机
-    digitalWrite(LIDAR_ROTATE_MOTOR_PWM, HIGH); // 雷达电机关闭
+  // if (IsMainPwrLowVoltLocked)
+  // {
+  //   LF.Speed(0);
+  //   RF.Speed(0);
+  //   LB.Speed(0);
+  //   RB.Speed(0);
+  //   digitalWrite(MOTOR_SAFETY_PIN, LOW);        // 锁定电机
+  //   digitalWrite(LIDAR_ROTATE_MOTOR_PWM, HIGH); // 雷达电机关闭
 
-    for (int i = 0; i < 5 * 5; i++) // 声音报警
-    {
-      BEEP_ON();
-      delay(100);
-      BEEP_OFF();
-      delay(100);
-    }
+  //   for (int i = 0; i < 5 * 5; i++) // 声音报警
+  //   {
+  //     BEEP_ON();
+  //     delay(100);
+  //     BEEP_OFF();
+  //     delay(100);
+  //   }
 
-    digitalWrite(PWR_5V_EN, LOW); // 关闭5V外设主电源
+  //   digitalWrite(PWR_5V_EN, LOW); // 关闭5V外设主电源
 
-    /* 停止中断处理 */
-    detachInterrupt(BUTTON_PIN_1);
-    detachInterrupt(BUTTON_PIN_2);
-    ITimer.detachInterrupt();
-    ITimer.disableTimer();
+  //   /* 停止中断处理 */
+  //   detachInterrupt(BUTTON_PIN_1);
+  //   detachInterrupt(BUTTON_PIN_2);
+  //   ITimer.detachInterrupt();
+  //   ITimer.disableTimer();
 
-    while (1)
-      ; // 阻塞主循环
-  }
+  //   while (1)
+  //     ; // 阻塞主循环
+  // }
 
   if (WButtonPressed)
   {
+    run = !run;
     if (WButtonPressed == 1)
-      run = !run;
+    {
+      cmdQueue = cmdQueue_police;
+      queuelen = sizeof(cmdQueue_police) / sizeof(CrossingCommand);
+    }
+    if (WButtonPressed == 2)
+    {
+      cmdQueue = cmdQueue_thief;
+      queuelen = sizeof(cmdQueue_thief) / sizeof(CrossingCommand);
+    }
     WButtonPressed = 0;
     ISR_Timer.setTimer( // 灵活使用定时器进行异步延时，不要长时间阻塞主循环
         100, []()
@@ -57,10 +128,13 @@ void loop()
         1);
   }
 
-  if(run){
-    digitalWrite(MOTOR_SAFETY_PIN, HIGH);        // 解锁电机
-    linetracking.Update(&UpSerial);
-  }else{
+  if (run)
+  {
+    digitalWrite(MOTOR_SAFETY_PIN, HIGH); // 解锁电机
+    linetracking.Update(cmdQueue, queuelen);
+  }
+  else
+  {
     LF.Speed(0);
     RF.Speed(0);
     LB.Speed(0);

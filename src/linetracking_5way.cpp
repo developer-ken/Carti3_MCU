@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "linetracking_5way.h"
-LinetrackingSensor5W::LinetrackingSensor5W(PinName LL, PinName L, PinName M, PinName R, PinName RR, int triggerLevel)
+LinetrackingSensor5W::LinetrackingSensor5W(PinName LL, PinName L, PinName M, PinName R, PinName RR, int triggerLevel, bool useInterrupt)
 {
     this->triggerLevel = triggerLevel;
     pinMode(LL, INPUT);
@@ -13,14 +13,17 @@ LinetrackingSensor5W::LinetrackingSensor5W(PinName LL, PinName L, PinName M, Pin
     this->m = M;
     this->r = R;
     this->rr = RR;
-    attachInterrupt(digitalPinToInterrupt(L), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
-    attachInterrupt(digitalPinToInterrupt(LL), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
-    attachInterrupt(digitalPinToInterrupt(M), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
-    attachInterrupt(digitalPinToInterrupt(R), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
-    attachInterrupt(digitalPinToInterrupt(RR), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
+    if (useInterrupt)
+    {
+        attachInterrupt(digitalPinToInterrupt(L), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
+        attachInterrupt(digitalPinToInterrupt(LL), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
+        attachInterrupt(digitalPinToInterrupt(M), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
+        attachInterrupt(digitalPinToInterrupt(R), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
+        attachInterrupt(digitalPinToInterrupt(RR), std::bind(&LinetrackingSensor5W::irc_updateall, this), CHANGE);
+    }
 }
 
-void LinetrackingSensor5W::irc_updateall()
+void LinetrackingSensor5W::TriggerOverallUpdate()
 {
     this->LL = digitalRead(this->ll) == this->triggerLevel;
     this->L = digitalRead(this->l) == this->triggerLevel;
@@ -29,10 +32,12 @@ void LinetrackingSensor5W::irc_updateall()
     this->RR = digitalRead(this->rr) == this->triggerLevel;
     this->isMiddleSensorTriggered = this->M;
     auto newstate = Loss;
-    if (this->LL || this->RR)
+    static int ltt = 0;
+    if ((millis() - ltt > 500) && (this->LL || this->RR) && (this->M || this->L || this->R))
     {
         // 外侧传感器接线，路口
         newstate = Crossing;
+        ltt = millis();
     }
     else if (this->L && this->R)
     {
@@ -63,4 +68,9 @@ void LinetrackingSensor5W::irc_updateall()
             LineTrackingStateChangedEvent(result);
         }
     }
+}
+
+void LinetrackingSensor5W::irc_updateall()
+{
+    TriggerOverallUpdate();
 }

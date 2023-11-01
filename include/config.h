@@ -1,0 +1,44 @@
+#ifndef _H_CONFIG_
+#ifdef STM32F1 // 主板使用STM32F103CXT6时的配置
+#define SERIAL_RX PA_10
+#define SERIAL_TX PA_9
+
+#define AUX_SERIAL_RX PB_11
+#define AUX_SERIAL_TX PB_10
+
+#define MOTOR_LB_PWM PA_0
+#define MOTOR_LB_CW PB_5
+
+#define MOTOR_LF_PWM PA_1
+#define MOTOR_LF_CW PB_4
+
+#define MOTOR_RF_PWM PA_2
+#define MOTOR_RF_CW PB_3
+
+#define MOTOR_RB_PWM PA_3
+#define MOTOR_RB_CW PA_15
+
+#define FSENSOR_P0 PA_12
+#define FSENSOR_P1 PA_11
+#define FSENSOR_P2 PA_8
+#define FSENSOR_P3 PB_15
+#define FSENSOR_P4 PB_14
+#define FSENSOR_P5 PB_13
+
+#define BEEP_PIN PB_1
+#define ADDR_LED_PIN PA_4
+#define MOTOR_SAFETY_PIN PB_7
+
+#define LIDAR_ROTATE_MOTOR_PWM PB_6
+
+#define BUTTON_PIN_1 PC14
+#define BUTTON_PIN_2 PC13
+
+#define PWR_5V_EN PC15
+#define BAT_VSENSE PA7
+
+#define MAIN_PWR_VSENSE_FACTOR 0.01405f
+#define MAIN_PWR_VOTAGE_LOW_LIMIT 10.6f
+
+#endif
+#endif

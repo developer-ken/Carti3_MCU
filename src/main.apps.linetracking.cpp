@@ -1,10 +1,22 @@
 #include <Arduino.h>
 #include "main.apps.linetracking.h"
+#include <STM32TimerInterrupt.h>
+#include <STM32_ISR_Timer.hpp>
+#include <Adafruit_NeoPixel.h>
+#include "config.h"
+#include "beep.h"
 
-#define SPEED_MAX 255
-#define SPEED_DIFF 50
+#define SPEED_MAX (7)     //电机最大电压
+#define SPEED_TURN (3.5)  //电机转向电压
+#define SPEED_DIFF (2)    //电机修正电压差
+#define HALF_LEN_T (250)  //路口延时（向前走出半个车长度的时间）
 
-#define SPEED_STD SPEED_MAX - SPEED_DIFF
+#define SPEED_STD (SPEED_MAX - SPEED_DIFF)
+
+extern STM32_ISR_Timer ISR_Timer;
+extern float voltage;
+extern Adafruit_NeoPixel strip;
+int timer_triggered = 0; // 0=none,1=l,2=r
 
 LineTracking::LineTracking(ILineTrackingSensor *sensor, IMotor *lf, IMotor *rf, IMotor *lb, IMotor *rb)
 {
@@ -17,6 +29,7 @@ LineTracking::LineTracking(ILineTrackingSensor *sensor, IMotor *lf, IMotor *rf, 
     this->sensor->LineTrackingStateChangedEvent =
         std::bind(&LineTracking::lineTrackingSensorCallback, this, std::placeholders::_1);
     state = WorkingState::WStraight;
+    CmdAtNextCrossing = CrossingCommand::GoStraight;
 }
 
 void LineTracking::lineTrackingSensorCallback(LineTrackingResult ltr)
@@ -25,11 +38,14 @@ void LineTracking::lineTrackingSensorCallback(LineTrackingResult ltr)
     switch (state) // 当前状态
     {
     case WorkingState::WStraight:
+    case WorkingState::WCorrLeft:
+    case WorkingState::WCorrRight:
     {
         switch (ltr) // 状态转出条件
         {
         case LineTrackingResult::Crossing:
         {
+            state = Stop;
             switch (CmdAtNextCrossing)
             {
             case CrossingCommand::Left:
@@ -47,8 +63,14 @@ void LineTracking::lineTrackingSensorCallback(LineTrackingResult ltr)
                 state = StPending;
                 break;
             }
+            case CrossingCommand::CStop:
+            {
+                state = Stop;
+                break;
+            }
             }
             this->CommandExecuted = true;
+            break;
         }
 
         case LineTrackingResult::CorrLeft:
@@ -60,90 +82,6 @@ void LineTracking::lineTrackingSensorCallback(LineTrackingResult ltr)
         case LineTrackingResult::CorrRight:
         {
             state = WCorrRight;
-            break;
-        }
-        }
-    }
-    break;
-
-    case WorkingState::WCorrLeft:
-    {
-        switch (ltr)
-        {
-        case LineTrackingResult::Crossing:
-        {
-            switch (CmdAtNextCrossing)
-            {
-            case CrossingCommand::Left:
-            {
-                state = LPending;
-                break;
-            }
-            case CrossingCommand::Right:
-            {
-                state = RPending;
-                break;
-            }
-            case CrossingCommand::GoStraight:
-            {
-                state = StPending;
-                break;
-            }
-            }
-            this->CommandExecuted = true;
-        }
-
-        case LineTrackingResult::Straight:
-        {
-            state = WStraight;
-            break;
-        }
-
-        case LineTrackingResult::CorrRight:
-        {
-            state = WCorrRight;
-            break;
-        }
-        }
-    }
-    break;
-
-    case WorkingState::WCorrRight:
-    {
-        switch (ltr)
-        {
-        case LineTrackingResult::Crossing:
-        {
-            switch (CmdAtNextCrossing)
-            {
-            case CrossingCommand::Left:
-            {
-                state = LPending;
-                break;
-            }
-            case CrossingCommand::Right:
-            {
-                state = RPending;
-                break;
-            }
-            case CrossingCommand::GoStraight:
-            {
-                state = StPending;
-                break;
-            }
-            }
-            this->CommandExecuted = true;
-        }
-
-        case LineTrackingResult::Straight:
-        {
-            state = WStraight;
-            break;
-        }
-
-        case LineTrackingResult::CorrLeft:
-        {
-            state = WCorrLeft;
             break;
         }
         }
@@ -154,7 +92,10 @@ void LineTracking::lineTrackingSensorCallback(LineTrackingResult ltr)
     {
         if (ltr != LineTrackingResult::Crossing)
         {
-            state = TurnLeft;
+            ISR_Timer.setTimer(
+                HALF_LEN_T, []()
+                { timer_triggered = 1; },
+                1);
         }
     }
     break;
@@ -163,7 +104,10 @@ void LineTracking::lineTrackingSensorCallback(LineTrackingResult ltr)
     {
         if (ltr != LineTrackingResult::Crossing)
         {
-            state = TurnRight;
+            ISR_Timer.setTimer(
+                HALF_LEN_T, []()
+                { timer_triggered = 2; },
+                1);
         }
     }
     break;
@@ -173,6 +117,10 @@ void LineTracking::lineTrackingSensorCallback(LineTrackingResult ltr)
         if (ltr != LineTrackingResult::Crossing)
         {
             state = WStraight;
+            // ISR_Timer.setTimer(
+            //     HALF_LEN_T, []()
+            //     { timer_triggered = 3; },
+            //     1);
         }
     }
     break;
@@ -198,41 +146,51 @@ void LineTracking::lineTrackingSensorCallback(LineTrackingResult ltr)
     }
 }
 
-void LineTracking::Update(HardwareSerial *serial)
+int LineTracking::Update(CrossingCommand *cmdQueue, int cmdQueueLength)
 {
+    sensor->TriggerOverallUpdate();
     static bool willstopatnxtc = false;
-    if (serial->available())
+    static int cmdindex = 0;
+    if (timer_triggered)
     {
-        char c = serial->read();
-        switch (c)
+        if (timer_triggered == 1)
         {
-        case 'l':
+            state = TurnLeft;
+        }
+        else if (timer_triggered == 2)
         {
-            CmdAtNextCrossing = CrossingCommand::Left;
-            break;
+            state = TurnRight;
         }
-        case 'r':
+        else if (timer_triggered == 3)
         {
-            CmdAtNextCrossing = CrossingCommand::Right;
-            break;
+            state = WStraight;
         }
-        case 'e': // stop at next crossing
-            willstopatnxtc = true;
-        case 's':
-        {
-            CmdAtNextCrossing = CrossingCommand::GoStraight;
-            break;
-        }
-        }
+        timer_triggered = 0;
     }
     if (CommandExecuted)
     {
         CommandExecuted = false;
-        serial->write('c');
-        if (willstopatnxtc)
+        // 到路口了，喂进去下一个路口指令
+        if (cmdindex < cmdQueueLength)
         {
-            state = Stop;
+            while (cmdQueue[cmdindex] == Alarm)
+            {
+                cmdindex++;
+                BEEP_ON();
+                strip.setPixelColor(0, 255, 0, 0);
+                strip.setPixelColor(1, 255, 0, 0);
+                strip.show();
+            }
+            CmdAtNextCrossing = cmdQueue[cmdindex];
+            cmdindex++;
         }
+        else
+        {
+            CmdAtNextCrossing = CrossingCommand::CStop;
+        }
+        //BEEP_ON();
+        //delay(50);
+        //BEEP_OFF();
     }
     switch (state) // 根据状态控制电机
     {
@@ -241,42 +199,42 @@ void LineTracking::Update(HardwareSerial *serial)
     case WorkingState::RPending:
     case WorkingState::StPending:
     {
-        LF->Speed(SPEED_STD);
-        RF->Speed(SPEED_STD);
-        LB->Speed(SPEED_STD);
-        RB->Speed(SPEED_STD);
+        LF->Speed(SPEED_STD * 255 / voltage);
+        RF->Speed(SPEED_STD * 255 / voltage);
+        LB->Speed(SPEED_STD * 255 / voltage);
+        RB->Speed(SPEED_STD * 255 / voltage);
         break;
     }
     case WorkingState::WCorrLeft:
     {
-        LF->Speed(SPEED_STD - SPEED_DIFF);
-        RF->Speed(SPEED_STD + SPEED_DIFF);
-        LB->Speed(SPEED_STD - SPEED_DIFF);
-        RB->Speed(SPEED_STD + SPEED_DIFF);
+        LF->Speed((SPEED_STD - SPEED_DIFF) * 255 / voltage);
+        RF->Speed((SPEED_STD + SPEED_DIFF) * 255 / voltage);
+        LB->Speed((SPEED_STD - SPEED_DIFF) * 255 / voltage);
+        RB->Speed((SPEED_STD + SPEED_DIFF) * 255 / voltage);
         break;
     }
     case WorkingState::WCorrRight:
     {
-        LF->Speed(SPEED_STD + SPEED_DIFF);
-        RF->Speed(SPEED_STD - SPEED_DIFF);
-        LB->Speed(SPEED_STD + SPEED_DIFF);
-        RB->Speed(SPEED_STD - SPEED_DIFF);
+        LF->Speed((SPEED_STD + SPEED_DIFF) * 255 / voltage);
+        RF->Speed((SPEED_STD - SPEED_DIFF) * 255 / voltage);
+        LB->Speed((SPEED_STD + SPEED_DIFF) * 255 / voltage);
+        RB->Speed((SPEED_STD - SPEED_DIFF) * 255 / voltage);
         break;
     }
     case WorkingState::TurnLeft:
     {
-        LF->Speed(-SPEED_STD);
-        RF->Speed(SPEED_STD);
-        LB->Speed(-SPEED_STD);
-        RB->Speed(SPEED_STD);
+        LF->Speed((-SPEED_TURN) * 255 / voltage);
+        RF->Speed((SPEED_TURN)*255 / voltage);
+        LB->Speed((-SPEED_TURN) * 255 / voltage);
+        RB->Speed((SPEED_TURN)*255 / voltage);
         break;
     }
     case WorkingState::TurnRight:
     {
-        LF->Speed(SPEED_STD);
-        RF->Speed(-SPEED_STD);
-        LB->Speed(SPEED_STD);
-        RB->Speed(-SPEED_STD);
+        LF->Speed((SPEED_TURN)*255 / voltage);
+        RF->Speed((-SPEED_TURN) * 255 / voltage);
+        LB->Speed((SPEED_TURN)*255 / voltage);
+        RB->Speed((-SPEED_TURN) * 255 / voltage);
         break;
     }
     case WorkingState::Stop:
@@ -288,4 +246,5 @@ void LineTracking::Update(HardwareSerial *serial)
         break;
     }
     }
+    return cmdindex;
 }
