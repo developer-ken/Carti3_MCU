@@ -35,6 +35,8 @@ CrossingCommand cmdQueue_police[] = {
     GoStraight,
     Left,
     CStop};
+
+    
 //路径：小偷
 CrossingCommand cmdQueue_thief[] = {
     Right,
